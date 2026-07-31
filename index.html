@@ -709,6 +709,7 @@
             <h3 class="fw-bold mb-1" style="color:#fff;">First Clue</h3>
             <div class="divider-custom"></div>
             <p style="color:#e0d0f5; font-size:1.05rem;">
+                <!-- 8 underscores for "stubborn" -->
                 "My babe was <strong style="color:#c084fc;">________</strong> when small"
             </p>
             <div class="hint-text mb-3">
@@ -732,6 +733,7 @@
             <h3 class="fw-bold mb-1" style="color:#fff;">Second Clue</h3>
             <div class="divider-custom"></div>
             <p style="color:#e0d0f5; font-size:1.05rem;">
+                <!-- 6 underscores for "makeup" -->
                 "My babe loved <strong style="color:#c084fc;">______</strong> when small"
             </p>
             <div class="hint-text mb-3">
@@ -881,7 +883,7 @@
             const confettiOverlay = document.getElementById('confettiOverlay');
 
             // ─── STATE ──────────────────────────────────────────
-            let currentPhase = 'countdown'; // countdown | phase1 | phase2 | wordReveal
+            let currentPhase = 'countdown';
             let revealedCount = 0;
             let targetTime = null;
             let countdownInterval = null;
@@ -936,14 +938,8 @@
             // ─── COUNTDOWN ──────────────────────────────────────
             function initCountdown() {
                 const now = new Date();
-                targetTime = new Date(now);
-                targetTime.setDate(targetTime.getDate() + 1);
-                targetTime.setHours(0, 0, 0, 0);
-
-                // If it's already past midnight, target is tomorrow
-                if (now >= targetTime) {
-                    targetTime.setDate(targetTime.getDate() + 1);
-                }
+                // 🔥 SET COUNTDOWN TO 7 SECONDS FOR TESTING
+                targetTime = new Date(now.getTime() + 7000);
 
                 updateTimer();
                 countdownInterval = setInterval(updateTimer, 1000);
@@ -959,7 +955,6 @@
                     timerEls.hours.textContent = '00';
                     timerEls.minutes.textContent = '00';
                     timerEls.seconds.textContent = '00';
-                    // Move to phase 1
                     showPhase('phase1');
                     return;
                 }
@@ -1080,24 +1075,18 @@
                 if (revealedCount >= WORDS.length) return;
 
                 const cards = revealGrid.querySelectorAll('.word-card');
-                // find first hidden card
                 for (let i = 0; i < cards.length; i++) {
                     if (cards[i].classList.contains('hidden')) {
                         cards[i].classList.remove('hidden');
                         cards[i].classList.add('revealed');
                         revealedCount++;
                         updateRevealUI();
-
-                        // confetti spark on each reveal
                         fireConfetti(18);
-
                         if (revealedCount === WORDS.length) {
-                            // all revealed!
                             loveBtn.disabled = true;
                             loveBtn.innerHTML = '<i class="fas fa-check-circle"></i> All revealed! 💖';
                             showLetterWrap.style.display = 'block';
                             fireConfetti(100);
-                            // Auto-show letter after 1.5s
                             setTimeout(() => {
                                 openLetter();
                             }, 1200);
@@ -1118,7 +1107,6 @@
                 ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
                 this.appendChild(ripple);
                 setTimeout(() => ripple.remove(), 700);
-
                 revealNextWord();
             });
 
@@ -1145,38 +1133,44 @@
                 if (e.key === 'Escape' && fullLetter.classList.contains('active')) {
                     closeLetter();
                 }
+
+                // 🚀 DEBUG: Ctrl+Shift+D to skip phases
+                if (e.ctrlKey && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+                    e.preventDefault();
+                    if (currentPhase === 'countdown') {
+                        clearInterval(countdownInterval);
+                        timerEls.days.textContent = '00';
+                        timerEls.hours.textContent = '00';
+                        timerEls.minutes.textContent = '00';
+                        timerEls.seconds.textContent = '00';
+                        showPhase('phase1');
+                    } else if (currentPhase === 'phase1') {
+                        pwd1Input.value = PASSWORD1;
+                        handlePwd1();
+                    } else if (currentPhase === 'phase2') {
+                        pwd2Input.value = PASSWORD2;
+                        handlePwd2();
+                    } else if (currentPhase === 'wordReveal') {
+                        const cards = revealGrid.querySelectorAll('.word-card.hidden');
+                        cards.forEach((card, idx) => {
+                            card.classList.remove('hidden');
+                            card.classList.add('revealed');
+                        });
+                        revealedCount = WORDS.length;
+                        updateRevealUI();
+                        loveBtn.disabled = true;
+                        loveBtn.innerHTML = '<i class="fas fa-check-circle"></i> All revealed! 💖';
+                        showLetterWrap.style.display = 'block';
+                        fireConfetti(100);
+                        setTimeout(() => openLetter(), 500);
+                    }
+                }
             });
 
             // ─── START ──────────────────────────────────────────
-            // Check if we should skip countdown (if already past target)
-            function checkStart() {
-                const now = new Date();
-                const tomorrow = new Date(now);
-                tomorrow.setDate(tomorrow.getDate() + 1);
-                tomorrow.setHours(0, 0, 0, 0);
-
-                if (now >= tomorrow) {
-                    // Already Girlfriend's Day — skip countdown
-                    showPhase('phase1');
-                    // Still start timer but it will show 00:00:00
-                    initCountdown();
-                    // But we need to override the timer display
-                    // Actually, just show phase1 directly
-                    clearInterval(countdownInterval);
-                    timerEls.days.textContent = '00';
-                    timerEls.hours.textContent = '00';
-                    timerEls.minutes.textContent = '00';
-                    timerEls.seconds.textContent = '00';
-                    showPhase('phase1');
-                } else {
-                    initCountdown();
-                }
-            }
-
-            checkStart();
+            initCountdown();
 
             // ─── FOCUS MANAGEMENT ──────────────────────────────
-            // Auto-focus first password input when phase1 shows
             const observer = new MutationObserver(() => {
                 if (currentPhase === 'phase1' && !pwd1Input.disabled) {
                     setTimeout(() => pwd1Input.focus(), 300);
@@ -1187,7 +1181,6 @@
             });
             observer.observe(document.body, { attributes: false, childList: false, subtree: false });
 
-            // Also watch for phase changes via showPhase
             const origShowPhase = showPhase;
             showPhase = function(name) {
                 origShowPhase(name);
@@ -1199,10 +1192,12 @@
                 }
             };
 
-            // ─── PREVENT CONTEXT MENU (optional) ──────────────
+            // ─── PREVENT CONTEXT MENU ──────────────────────────
             document.addEventListener('contextmenu', (e) => e.preventDefault());
 
             console.log('💜 Happy Girlfriend\'s Day, Babe Ifeoma! 💗');
+            console.log('⏱️ Countdown set to 7 seconds for testing.');
+            console.log('🛠️ Debug: Press Ctrl+Shift+D to skip phases.');
 
         })();
     </script>
